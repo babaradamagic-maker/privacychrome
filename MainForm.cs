@@ -327,8 +327,8 @@ namespace PrivacyChrome
                     {
                         // Defensive detach: try to remove any remaining attachments
                         IntPtr foreground2 = NativeMethods.GetForegroundWindow();
-                        uint fgThread2 = NativeMethods.GetWindowThreadProcessId(foreground2, out _);
-                        uint chromeThread2 = NativeMethods.GetWindowThreadProcessId(chromeWnd, out _);
+                        uint fgThread2 = NativeMethods.GetWindowThreadProcessId(foreground2, out uint fgPid2);
+                        uint chromeThread2 = NativeMethods.GetWindowThreadProcessId(chromeWnd, out uint chromePid2);
                         uint currentThread2 = NativeMethods.GetCurrentThreadId();
 
                         DebugLogger.Log("Finally: threads current=0x{0:X} fgThread={1} chromeThread={2}", currentThread2, fgThread2, chromeThread2);
