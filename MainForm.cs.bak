@@ -1,0 +1,74 @@
+         using System;
+using System.Diagnostics;
+using System.Drawing;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Windows.Forms;
+using System.Collections.Generic;
+using System.Timers;
+
+namespace PrivacyChrome
+{
+    public class MainForm : Form
+    {
+        // ...
+    }
+}
+        // Try to find a Chrome window
+        IntPtr chromeWnd = FindChromeWindow();
+        if (chromeWnd == IntPtr.Zero) return;
+
+        try
+        {
+            // If minimized, restore first
+            if (NativeMethods.IsIconic(chromeWnd))
+                NativeMethods.ShowWindow(chromeWnd, NativeMethods.SW_RESTORE);
+
+            // Attach input threads so SetForegroundWindow works more reliably
+            IntPtr foreground = NativeMethods.GetForegroundWindow();
+            uint fgThread = NativeMethods.GetWindowThreadProcessId(foreground, out _);
+            uint chromeThread = NativeMethods.GetWindowThreadProcessId(chromeWnd, out _);
+            uint currentThread = NativeMethods.GetCurrentThreadId();
+
+            // Attach current thread to foreground and chrome thread to help Windows allow setting foreground
+            if (fgThread != 0)
+                NativeMethods.AttachThreadInput(currentThread, fgThread, true);
+            if (chromeThread != 0)
+                NativeMethods.AttachThreadInput(currentThread, chromeThread, true);
+
+            // Maximize and bring to top
+            NativeMethods.ShowWindow(chromeWnd, NativeMethods.SW_MAXIMIZE);
+            NativeMethods.BringWindowToTop(chromeWnd);
+            NativeMethods.SetForegroundWindow(chromeWnd);
+            NativeMethods.SetActiveWindow(chromeWnd);
+            NativeMethods.SetWindowPos(chromeWnd, NativeMethods.HWND_TOP, 0, 0, 0, 0,
+                NativeMethods.SWP_SHOWWINDOW | NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE);
+        }
+        catch { /* swallow */ }
+        finally
+        {
+            // Detach thread input
+            try
+            {
+                IntPtr foreground = NativeMethods.GetForegroundWindow();
+                uint fgThread = NativeMethods.GetWindowThreadProcessId(foreground, out _);
+                uint chromeThread = NativeMethods.GetWindowThreadProcessId(chromeWnd, out _);
+                uint currentThread = NativeMethods.GetCurrentThreadId();
+
+                if (fgThread != 0)
+                    NativeMethods.AttachThreadInput(currentThread, fgThread, false);
+                if (chromeThread != 0)
+                    NativeMethods.AttachThreadInput(currentThread, chromeThread, false);
+            }
+            catch { }
+        }
+
+        // Minimize all other top-level application windows
+        MinimizeOtherWindows(chromeWnd);
+
+        // After triggering, app becomes passive until Chrome is no longer active
+        armed = false;
+        UpdateTrayText();
+    });
+}
